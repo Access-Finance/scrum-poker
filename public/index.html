@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scrum Poker</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card2: #243049;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #6366f1;
+      --accent-h: #818cf8;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
+    h1 { font-size: 1.6rem; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 24px; font-size: .9rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+    label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+    input[type=text], input[type=number] {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card2);
+      color: var(--text);
+    }
+    input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+    .row { display: flex; gap: 10px; }
+    .row > * { flex: 1; }
+    button {
+      padding: 12px 16px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    button:hover { background: var(--accent-h); }
+    button.ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    button.ghost:hover { background: var(--card2); color: var(--text); }
+    button.kick {
+      flex: 0 0 auto;
+      padding: 6px 12px;
+      font-size: .8rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    button.kick:hover { background: var(--danger); border-color: var(--danger); color: white; }
+    .hidden { display: none !important; }
+
+    ul.people { list-style: none; padding: 0; margin: 0; }
+    ul.people li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      background: var(--card2);
+    }
+    .pname { flex: 1; font-weight: 600; }
+    .pname .you { color: var(--muted); font-weight: 400; font-size: .8rem; }
+    .badge {
+      font-size: .75rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .badge.pending { background: rgba(245,158,11,.15); color: var(--warn); }
+    .badge.voted { background: rgba(34,197,94,.15); color: var(--ok); }
+    .vote-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      min-width: 56px;
+      text-align: right;
+    }
+    .summary {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .stat {
+      flex: 1;
+      text-align: center;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .stat .k { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .stat .v { font-size: 1.4rem; font-weight: 700; margin-top: 2px; }
+    .agree { color: var(--ok); font-weight: 600; margin-top: 10px; text-align: center; }
+    .reveal-banner {
+      text-align: center;
+      font-weight: 700;
+      color: var(--accent-h);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      font-size: .85rem;
+      margin-bottom: 12px;
+    }
+    .controls { display: flex; gap: 10px; }
+    .empty { color: var(--muted); text-align: center; padding: 12px; }
+    .voted-note { color: var(--ok); font-size: .85rem; margin-top: 10px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🃏 Scrum Poker</h1>
+    <p class="sub">One estimate per person, in hours. Cards reveal automatically when everyone has voted.</p>
+
+    <!-- Name gate -->
+    <div id="joinCard" class="card">
+      <label for="nameInput">Your name</label>
+      <div class="row">
+        <input type="text" id="nameInput" placeholder="e.g. Ivan" maxlength="40" autocomplete="off" />
+        <button id="joinBtn" style="flex:0 0 auto;">Join</button>
+      </div>
+    </div>
+
+    <!-- Voting -->
+    <div id="voteCard" class="card hidden">
+      <label for="hoursInput">Your estimate (hours)</label>
+      <div class="row">
+        <input type="number" id="hoursInput" min="0" step="0.5" placeholder="e.g. 8" />
+        <button id="voteBtn" style="flex:0 0 auto;">Submit</button>
+      </div>
+      <div id="votedNote" class="voted-note hidden">✓ Vote submitted — you can change it until reveal.</div>
+    </div>
+
+    <!-- Room -->
+    <div id="roomCard" class="card hidden">
+      <div id="revealBanner" class="reveal-banner hidden">Revealed</div>
+      <ul id="people" class="people"></ul>
+      <div id="summary"></div>
+      <div class="controls" style="margin-top:16px;">
+        <button id="resetBtn" class="ghost" style="flex:1;">Reset round</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    let myId = null;
+    let joined = false;
+    let myVote = null;
+
+    const joinCard = document.getElementById('joinCard');
+    const voteCard = document.getElementById('voteCard');
+    const roomCard = document.getElementById('roomCard');
+    const nameInput = document.getElementById('nameInput');
+    const hoursInput = document.getElementById('hoursInput');
+    const joinBtn = document.getElementById('joinBtn');
+    const voteBtn = document.getElementById('voteBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const peopleEl = document.getElementById('people');
+    const summaryEl = document.getElementById('summary');
+    const revealBanner = document.getElementById('revealBanner');
+    const votedNote = document.getElementById('votedNote');
+
+    socket.on('connect', () => { myId = socket.id; });
+
+    function join() {
+      const name = nameInput.value.trim();
+      if (!name) return;
+      socket.emit('join', { name });
+      joined = true;
+      joinCard.classList.add('hidden');
+      voteCard.classList.remove('hidden');
+      roomCard.classList.remove('hidden');
+    }
+
+    function vote() {
+      const hours = hoursInput.value;
+      if (hours === '' || Number(hours) < 0) return;
+      myVote = Number(hours);
+      socket.emit('vote', { hours: myVote });
+      votedNote.classList.remove('hidden');
+    }
+
+    joinBtn.addEventListener('click', join);
+    nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
+    voteBtn.addEventListener('click', vote);
+    hoursInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') vote(); });
+    resetBtn.addEventListener('click', () => socket.emit('reset'));
+
+    socket.on('kicked', () => {
+      alert('You have been removed from the session.');
+      location.reload();
+    });
+
+    socket.on('state', (state) => {
+      render(state);
+    });
+
+    function render(state) {
+      const { participants, revealed } = state;
+      myId = socket.id;
+
+      // Reset local vote tracking when the round resets.
+      if (!revealed) {
+        const me = participants.find((p) => p.id === myId);
+        if (me && !me.hasVoted) {
+          myVote = null;
+          votedNote.classList.add('hidden');
+          hoursInput.value = '';
+        }
+      }
+
+      revealBanner.classList.toggle('hidden', !revealed);
+
+      // People list
+      peopleEl.innerHTML = '';
+      if (participants.length === 0) {
+        peopleEl.innerHTML = '<div class="empty">No one here yet.</div>';
+      }
+      for (const p of participants) {
+        const li = document.createElement('li');
+
+        const name = document.createElement('span');
+        name.className = 'pname';
+        name.textContent = p.name;
+        if (p.id === myId) {
+          const you = document.createElement('span');
+          you.className = 'you';
+          you.textContent = '  (you)';
+          name.appendChild(you);
+        }
+        li.appendChild(name);
+
+        if (revealed) {
+          const val = document.createElement('span');
+          val.className = 'vote-val';
+          val.textContent = p.vote === null ? '—' : p.vote + 'h';
+          li.appendChild(val);
+        } else {
+          const badge = document.createElement('span');
+          badge.className = 'badge ' + (p.hasVoted ? 'voted' : 'pending');
+          badge.textContent = p.hasVoted ? '✓ voted' : 'waiting…';
+          li.appendChild(badge);
+        }
+
+        const kick = document.createElement('button');
+        kick.className = 'kick';
+        kick.textContent = 'Kick';
+        kick.addEventListener('click', () => {
+          if (confirm('Remove ' + p.name + ' from the session?')) {
+            socket.emit('kick', { id: p.id });
+          }
+        });
+        li.appendChild(kick);
+
+        peopleEl.appendChild(li);
+      }
+
+      // Summary
+      summaryEl.innerHTML = '';
+      if (revealed) {
+        const votes = participants.map((p) => p.vote).filter((v) => v !== null);
+        if (votes.length > 0) {
+          const min = Math.min(...votes);
+          const max = Math.max(...votes);
+          const avg = votes.reduce((a, b) => a + b, 0) / votes.length;
+          const allEqual = min === max;
+
+          const wrap = document.createElement('div');
+          wrap.className = 'summary';
+          wrap.innerHTML =
+            stat('Min', min + 'h') +
+            stat('Avg', round1(avg) + 'h') +
+            stat('Max', max + 'h');
+          summaryEl.appendChild(wrap);
+
+          if (allEqual) {
+            const a = document.createElement('div');
+            a.className = 'agree';
+            a.textContent = '🎉 Consensus — everyone agrees!';
+            summaryEl.appendChild(a);
+          }
+        }
+      }
+    }
+
+    function stat(k, v) {
+      return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>';
+    }
+    function round1(n) { return Math.round(n * 10) / 10; }
+  </script>
+</body>
+</html>
