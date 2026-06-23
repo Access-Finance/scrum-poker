@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#6366f1"/>
+  <!-- back card (fanned behind) -->
+  <rect x="26" y="13" width="22" height="32" rx="4" fill="#c7d2fe"
+        transform="rotate(14 37 29)"/>
+  <!-- front card -->
+  <rect x="16" y="17" width="22" height="32" rx="4" fill="#ffffff"
+        transform="rotate(-9 27 33)"/>
+  <!-- spade on the front card -->
+  <path transform="rotate(-9 27 33)"
+        d="M27 22 C27 22 16 30 16 37 C16 41 20 43 23 40 C22 44 21 45 19 46
+           L35 46 C33 45 32 44 31 40 C34 43 38 41 38 37 C38 30 27 22 27 22 Z"
+        fill="#6366f1"/>
+</svg>
