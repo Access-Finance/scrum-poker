@@ -1,0 +1,18 @@
+app = "scrum-poker-af"
+primary_region = "fra"
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Keep exactly ONE machine running: the room state lives in RAM, so a single
+  # shared instance is required (multiple machines = split rooms).
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
